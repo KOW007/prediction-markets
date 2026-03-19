@@ -455,16 +455,21 @@
     }
 
     // Step 2: Filter markets locally by threshold, category, query
+    function getProb(m) {
+      // Kalshi returns prices as dollar strings (0.00–1.00), convert to percentage
+      return parseFloat(m.last_price_dollars || m.yes_ask_dollars || '0') * 100;
+    }
+
     function filterMarkets(markets, threshold, category, query) {
       return markets.filter(m => {
-        const prob = m.last_price ?? m.yes_ask ?? 0;
+        const prob = getProb(m);
         if (prob < threshold) return false;
         if (query) {
           const q = query.toLowerCase();
           if (!m.title?.toLowerCase().includes(q)) return false;
         }
         if (category !== 'all') {
-          const cat = (m.category || '').toLowerCase();
+          const cat = (m.category || m.event_ticker || '').toLowerCase();
           if (!cat.includes(category.toLowerCase())) return false;
         }
         return true;
@@ -474,7 +479,7 @@
     // Step 3: Ask Claude Haiku to add rationale for each market (minimal tokens)
     async function analyzeWithClaude(markets, threshold) {
       const lines = markets.map(m =>
-        `"${m.title}" YES=${m.last_price ?? m.yes_ask}% closes=${m.close_time?.split('T')[0] ?? 'TBD'}`
+        `"${m.title}" YES=${Math.round(getProb(m))}% closes=${m.close_time?.split('T')[0] ?? 'TBD'}`
       ).join('\n');
 
       const prompt = `These are real live Kalshi markets priced at ${threshold}%+:\n${lines}\n\nReturn ONLY a JSON array with a short rationale for each:\n[{"title":"...","probability":92,"resolves":"2026-12-31","rationale":"1 sentence why this is high confidence","category":"politics"}]\ncategory: politics|economics|science|sports|crypto|other`;
@@ -526,7 +531,6 @@
         const allMarkets = await fetchKalshiMarkets();
 
         statusText.textContent = `Filtering ${allMarkets.length} markets...`;
-        console.log('Sample market:', JSON.stringify(allMarkets[0]));
         const filtered = filterMarkets(allMarkets, currentThreshold, currentCat, query);
 
         if (!filtered.length) {
