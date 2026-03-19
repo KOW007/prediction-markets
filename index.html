@@ -483,6 +483,14 @@ Return ONLY a JSON array, no markdown, no backticks:
         }
 
         const data = await response.json();
+
+        if (!response.ok) {
+          const errMsg = data?.error?.message || JSON.stringify(data);
+          statusText.textContent = 'API error: ' + errMsg;
+          spinner.classList.remove('active');
+          scanBtn.disabled = false;
+          return;
+        }
         const textContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
         const start = textContent.indexOf('[');
         const end = textContent.lastIndexOf(']');
