@@ -451,6 +451,8 @@
         throw new Error(err.error || `Kalshi proxy error: ${resp.status}`);
       }
       const data = await resp.json();
+      console.log('API response keys:', Object.keys(data));
+      if (data.events) console.log('First event:', JSON.stringify(data.events[0]));
       return data.markets || [];
     }
 

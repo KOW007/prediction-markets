@@ -3,34 +3,23 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET')
 
   try {
-    let allMarkets = []
-    let cursor = ''
+    // Fetch events first, then get markets for each event
+    const eventsRes = await fetch('https://api.elections.kalshi.com/trade-api/v2/events?limit=100', {
+      headers: { 'Accept': 'application/json' }
+    })
 
-    // Fetch up to 5 pages (1000 markets) looking for priced markets
-    for (let i = 0; i < 5; i++) {
-      const url = `https://api.elections.kalshi.com/trade-api/v2/markets?limit=200${cursor ? `&cursor=${cursor}` : ''}`
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } })
-
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `Kalshi API error: ${response.status}` })
-      }
-
-      const data = await response.json()
-      const markets = data.markets || []
-
-      // Skip parlay/multi-variable markets — they have no individual pricing
-      const single = markets.filter(m => !m.mve_collection_ticker)
-      allMarkets = allMarkets.concat(single)
-
-      cursor = data.cursor || ''
-      if (!cursor) break
-
-      // Stop early if we have enough priced markets
-      const priced = allMarkets.filter(m => parseFloat(m.yes_ask_dollars || '0') > 0)
-      if (priced.length >= 50) break
+    if (!eventsRes.ok) {
+      return res.status(eventsRes.status).json({ error: `Kalshi events error: ${eventsRes.status}` })
     }
 
-    res.status(200).json({ markets: allMarkets })
+    const eventsData = await eventsRes.json()
+    const events = eventsData.events || []
+
+    // Log first event for debugging
+    console.log('First event:', JSON.stringify(events[0]))
+    console.log('Total events:', events.length)
+
+    res.status(200).json({ events, markets: [] })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
