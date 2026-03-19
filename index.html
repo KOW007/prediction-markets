@@ -444,9 +444,8 @@
 
     // Step 1: Fetch live markets from Kalshi public API
     async function fetchKalshiMarkets() {
-      const url = 'https://trading-api.kalshi.com/trade-api/v2/markets?status=active&limit=200';
-      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!resp.ok) throw new Error(`Kalshi API error: ${resp.status}`);
+      const resp = await fetch('/api/kalshi');
+      if (!resp.ok) throw new Error(`Kalshi proxy error: ${resp.status}`);
       const data = await resp.json();
       return data.markets || [];
     }
