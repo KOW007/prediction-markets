@@ -490,15 +490,30 @@ Return ONLY a JSON array, no markdown, no backticks:
           return;
         }
         const textContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-        const start = textContent.indexOf('[');
-        const end = textContent.lastIndexOf(']');
+        console.log('Raw API response:', textContent);
 
         let bets = [];
-        if (start !== -1 && end !== -1) {
-          bets = JSON.parse(textContent.slice(start, end + 1));
+        try {
+          const start = textContent.indexOf('[');
+          const end = textContent.lastIndexOf(']');
+          if (start !== -1 && end !== -1) {
+            bets = JSON.parse(textContent.slice(start, end + 1));
+          }
+        } catch (parseErr) {
+          console.error('JSON parse error:', parseErr, 'Raw text:', textContent);
+          statusText.textContent = 'Could not parse response. Check console for raw output.';
+          spinner.classList.remove('active');
+          scanBtn.disabled = false;
+          return;
         }
 
-        if (!bets.length) throw new Error('no_results');
+        if (!bets.length) {
+          console.warn('Empty bets array. Raw response was:', textContent);
+          statusText.textContent = 'No results found — check console (F12) for raw response.';
+          spinner.classList.remove('active');
+          scanBtn.disabled = false;
+          return;
+        }
 
         spinner.classList.remove('active');
         statusText.textContent = `Found ${bets.length} high-confidence markets at ${currentThreshold}%+ threshold.`;
