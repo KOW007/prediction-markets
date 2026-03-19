@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET')
 
   try {
-    const response = await fetch('https://api.elections.kalshi.com/trade-api/v2/markets?status=active&limit=200', {
+    const response = await fetch('https://api.elections.kalshi.com/trade-api/v2/markets?limit=200', {
       headers: { 'Accept': 'application/json' }
     })
 
