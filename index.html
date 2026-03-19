@@ -354,6 +354,9 @@
           <button id="saveKeyBtn">Save key</button>
         </div>
       </div>
+      <div id="changeKeyRow" style="display:none; margin-bottom:1rem;">
+        <button id="changeKeyBtn" style="font-size:12px; background:none; border:none; color:var(--text-secondary); cursor:pointer; text-decoration:underline; padding:0;">Change API key</button>
+      </div>
 
       <div class="warning">
         <strong>Educational tool only.</strong> For research and informational purposes. Always verify markets directly on <a href="https://kalshi.com" target="_blank" style="color:var(--blue)">Kalshi</a> before acting.
@@ -398,8 +401,17 @@
     function init() {
       if (apiKey) {
         document.getElementById('apiBanner').style.display = 'none';
+        document.getElementById('changeKeyRow').style.display = 'block';
       }
     }
+
+    document.getElementById('changeKeyBtn').addEventListener('click', function() {
+      apiKey = '';
+      localStorage.removeItem('anthropic_key');
+      document.getElementById('apiBanner').style.display = 'block';
+      document.getElementById('changeKeyRow').style.display = 'none';
+      document.getElementById('apiKeyInput').focus();
+    });
 
     function saveKey() {
       const val = document.getElementById('apiKeyInput').value.trim();
@@ -410,6 +422,7 @@
       apiKey = val;
       localStorage.setItem('anthropic_key', val);
       document.getElementById('apiBanner').style.display = 'none';
+      document.getElementById('changeKeyRow').style.display = 'block';
       document.getElementById('statusText').textContent = 'API key saved. Ready to scan markets.';
     }
 
