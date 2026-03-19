@@ -465,7 +465,7 @@
       const oneMonth = 30 * 24 * 60 * 60 * 1000;
       return markets.filter(m => {
         const prob = getProb(m);
-        if (prob < threshold) return false;
+        if (prob < threshold || prob > 92) return false;
         const closeTs = m.close_time ? new Date(m.close_time).getTime() : null;
         if (!closeTs || closeTs < now || closeTs > now + oneMonth) return false;
         if (query) {
