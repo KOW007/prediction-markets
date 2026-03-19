@@ -506,14 +506,8 @@ Return ONLY a JSON array, no markdown, no backticks:
 
       } catch (err) {
         spinner.classList.remove('active');
-        if (err.message === 'invalid_key') {
-          statusText.textContent = 'API key invalid. Please re-enter your key.';
-          localStorage.removeItem('anthropic_key');
-          apiKey = '';
-          document.getElementById('apiBanner').style.display = 'block';
-        } else {
-          statusText.textContent = 'Search failed. Check your API key or try again.';
-        }
+        console.error('Caught error:', err);
+        statusText.textContent = 'Error: ' + (err.message || JSON.stringify(err));
       }
 
       scanBtn.disabled = false;
