@@ -358,17 +358,6 @@
         <button id="changeKeyBtn" style="font-size:12px; background:none; border:none; color:var(--text-secondary); cursor:pointer; text-decoration:underline; padding:0;">Change Anthropic key</button>
       </div>
 
-      <!-- Kalshi API Key banner -->
-      <div class="api-banner" id="kalshiBanner">
-        <strong>Kalshi API key required.</strong> Create a free account at <a href="https://kalshi.com" target="_blank" style="color:#185FA5;">kalshi.com</a>, then go to Settings → API to generate a key.
-        <div class="api-key-input-row">
-          <input type="password" id="kalshiKeyInput" placeholder="Kalshi API key..." />
-          <button id="saveKalshiKeyBtn">Save key</button>
-        </div>
-      </div>
-      <div id="changeKalshiKeyRow" style="display:none; margin-bottom:1rem;">
-        <button id="changeKalshiKeyBtn" style="font-size:12px; background:none; border:none; color:var(--text-secondary); cursor:pointer; text-decoration:underline; padding:0;">Change Kalshi key</button>
-      </div>
 
       <div class="warning">
         <strong>Educational tool only.</strong> For research and informational purposes. Always verify markets directly on <a href="https://kalshi.com" target="_blank" style="color:var(--blue)">Kalshi</a> before acting.
@@ -409,16 +398,10 @@
     let currentCat = 'all';
     let currentThreshold = 85;
     let apiKey = localStorage.getItem('anthropic_key') || '';
-    let kalshiKey = localStorage.getItem('kalshi_key') || '';
-
     function init() {
       if (apiKey) {
         document.getElementById('apiBanner').style.display = 'none';
         document.getElementById('changeKeyRow').style.display = 'block';
-      }
-      if (kalshiKey) {
-        document.getElementById('kalshiBanner').style.display = 'none';
-        document.getElementById('changeKalshiKeyRow').style.display = 'block';
       }
     }
 
@@ -430,13 +413,6 @@
       document.getElementById('apiKeyInput').focus();
     });
 
-    document.getElementById('changeKalshiKeyBtn').addEventListener('click', function() {
-      kalshiKey = '';
-      localStorage.removeItem('kalshi_key');
-      document.getElementById('kalshiBanner').style.display = 'block';
-      document.getElementById('changeKalshiKeyRow').style.display = 'none';
-      document.getElementById('kalshiKeyInput').focus();
-    });
 
     function saveKey() {
       const val = document.getElementById('apiKeyInput').value.trim();
@@ -451,18 +427,7 @@
       document.getElementById('statusText').textContent = 'Anthropic key saved.';
     }
 
-    function saveKalshiKey() {
-      const val = document.getElementById('kalshiKeyInput').value.trim();
-      if (!val) { alert('Please enter your Kalshi API key.'); return; }
-      kalshiKey = val;
-      localStorage.setItem('kalshi_key', val);
-      document.getElementById('kalshiBanner').style.display = 'none';
-      document.getElementById('changeKalshiKeyRow').style.display = 'block';
-      document.getElementById('statusText').textContent = 'Kalshi key saved. Ready to scan markets.';
-    }
-
     document.getElementById('saveKeyBtn').addEventListener('click', saveKey);
-    document.getElementById('saveKalshiKeyBtn').addEventListener('click', saveKalshiKey);
     document.getElementById('scanBtn').addEventListener('click', runSearch);
 
     document.getElementById('thresholdSlider').addEventListener('input', function() {
@@ -480,9 +445,7 @@
 
     // Step 1: Fetch live markets from Kalshi public API
     async function fetchKalshiMarkets() {
-      const resp = await fetch('/api/kalshi', {
-        headers: { 'x-kalshi-key': kalshiKey }
-      });
+      const resp = await fetch('/api/kalshi');
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.error || `Kalshi proxy error: ${resp.status}`);
@@ -545,11 +508,6 @@
       if (!apiKey) {
         document.getElementById('apiBanner').style.display = 'block';
         document.getElementById('apiKeyInput').focus();
-        return;
-      }
-      if (!kalshiKey) {
-        document.getElementById('kalshiBanner').style.display = 'block';
-        document.getElementById('kalshiKeyInput').focus();
         return;
       }
 
