@@ -463,9 +463,9 @@
       const catFilter = currentCat === 'all' ? '' : ` in ${currentCat}`;
       const topicFilter = query ? ` about "${query}"` : '';
 
-      const prompt = `Search Kalshi.com for 5 live markets${catFilter}${topicFilter} priced at ${currentThreshold}%+. Return ONLY a JSON array:
+      const prompt = `Search Kalshi.com for 3 live markets${catFilter}${topicFilter} at ${currentThreshold}%+. Return ONLY JSON array:
 [{"title":"...","probability":92,"resolves":"2026-12-31","rationale":"...","category":"politics"}]
-Categories: politics,economics,science,sports,crypto,other.`;
+category: politics|economics|science|sports|crypto|other`;
 
       try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -477,8 +477,8 @@ Categories: politics,economics,science,sports,crypto,other.`;
             'anthropic-dangerous-direct-browser-access': 'true'
           },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 800,
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 600,
             tools: [{ type: 'web_search_20260209', name: 'web_search' }],
             messages: [{ role: 'user', content: prompt }]
           })
