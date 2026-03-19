@@ -374,8 +374,8 @@
 
       <div class="threshold-row">
         Minimum confidence:
-        <input type="range" min="80" max="99" value="85" step="1" id="thresholdSlider" />
-        <span class="threshold-val" id="thresholdVal">85%</span>
+        <input type="range" min="50" max="99" value="60" step="1" id="thresholdSlider" />
+        <span class="threshold-val" id="thresholdVal">60%</span>
       </div>
 
       <div class="query-row">
@@ -396,7 +396,7 @@
 
   <script>
     let currentCat = 'all';
-    let currentThreshold = 85;
+    let currentThreshold = 60;
     let apiKey = localStorage.getItem('anthropic_key') || '';
     function init() {
       if (apiKey) {
@@ -451,8 +451,6 @@
         throw new Error(err.error || `Kalshi proxy error: ${resp.status}`);
       }
       const data = await resp.json();
-      console.log('API response keys:', Object.keys(data));
-      if (data.events) console.log('First event:', JSON.stringify(data.events[0]));
       return data.markets || [];
     }
 
@@ -533,8 +531,6 @@
         const allMarkets = await fetchKalshiMarkets();
 
         statusText.textContent = `Filtering ${allMarkets.length} markets...`;
-        const probs = allMarkets.map(m => getProb(m)).sort((a,b) => b-a);
-        console.log('Total markets:', allMarkets.length, '| Top 10 probs:', probs.slice(0,10));
         const filtered = filterMarkets(allMarkets, currentThreshold, currentCat, query);
 
         if (!filtered.length) {
