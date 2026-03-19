@@ -450,18 +450,14 @@
       const categoryContext = currentCat === 'all' ? 'all prediction market categories' : `the ${currentCat} category`;
       const topicContext = query ? `Focus especially on: "${query}".` : '';
 
-      const prompt = `You are a prediction market analyst. Search the web for current, real prediction markets on Polymarket, Kalshi, and Manifold Markets that have a probability of ${currentThreshold}% or higher. Focus on ${categoryContext}. ${topicContext}
+      const prompt = `You are a prediction market analyst. Search the web right now for current prediction markets on Polymarket, Kalshi, and Manifold Markets that have a probability of ${currentThreshold}% or higher. Focus on ${categoryContext}. ${topicContext}
 
-Find 5-6 real, specific markets currently priced at ${currentThreshold}%+. For each provide:
-- The exact market question
-- Current probability percentage
-- Platform (Polymarket/Kalshi/Manifold)
-- Resolution date (YYYY-MM-DD)
-- Why the market is priced so high
-- Category (politics/economics/science/sports/crypto/other)
+Search for live markets and find 5-6 real specific ones currently priced at ${currentThreshold}%+. For each provide the exact market question, current probability, platform, resolution date, rationale, and category.
 
-Return ONLY a JSON array, no markdown, no backticks:
-[{"title":"...","probability":92,"platform":"Polymarket","resolves":"2025-12-31","rationale":"...","category":"politics"}]`;
+Return ONLY a valid JSON array, no markdown, no backticks, no text before or after the array:
+[{"title":"...","probability":92,"platform":"Polymarket","resolves":"2026-12-31","rationale":"...","category":"politics"}]
+
+Category must be one of: politics, economics, science, sports, crypto, other.`;
 
       try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -474,7 +470,8 @@ Return ONLY a JSON array, no markdown, no backticks:
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            max_tokens: 1500,
+            max_tokens: 2000,
+            tools: [{ type: 'web_search_20260209', name: 'web_search' }],
             messages: [{ role: 'user', content: prompt }]
           })
         });
