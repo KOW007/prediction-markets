@@ -340,7 +340,7 @@
   <div class="page">
     <header>
       <h1>Kalshi market intelligence agent</h1>
-      <p>Surfaces high-confidence bets on Kalshi using AI-powered web search.</p>
+      <p>Pulls live markets from Kalshi and uses AI to surface high-confidence opportunities.</p>
     </header>
 
     <div class="card">
@@ -442,6 +442,65 @@
       currentCat = btn.dataset.cat;
     });
 
+    // Step 1: Fetch live markets from Kalshi public API
+    async function fetchKalshiMarkets() {
+      const url = 'https://trading-api.kalshi.com/trade-api/v2/markets?status=active&limit=200';
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error(`Kalshi API error: ${resp.status}`);
+      const data = await resp.json();
+      return data.markets || [];
+    }
+
+    // Step 2: Filter markets locally by threshold, category, query
+    function filterMarkets(markets, threshold, category, query) {
+      return markets.filter(m => {
+        const prob = m.last_price ?? m.yes_ask ?? 0;
+        if (prob < threshold) return false;
+        if (query) {
+          const q = query.toLowerCase();
+          if (!m.title?.toLowerCase().includes(q)) return false;
+        }
+        if (category !== 'all') {
+          const cat = (m.category || '').toLowerCase();
+          if (!cat.includes(category.toLowerCase())) return false;
+        }
+        return true;
+      }).slice(0, 10);
+    }
+
+    // Step 3: Ask Claude Haiku to add rationale for each market (minimal tokens)
+    async function analyzeWithClaude(markets, threshold) {
+      const lines = markets.map(m =>
+        `"${m.title}" YES=${m.last_price ?? m.yes_ask}% closes=${m.close_time?.split('T')[0] ?? 'TBD'}`
+      ).join('\n');
+
+      const prompt = `These are real live Kalshi markets priced at ${threshold}%+:\n${lines}\n\nReturn ONLY a JSON array with a short rationale for each:\n[{"title":"...","probability":92,"resolves":"2026-12-31","rationale":"1 sentence why this is high confidence","category":"politics"}]\ncategory: politics|economics|science|sports|crypto|other`;
+
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error?.message || JSON.stringify(data));
+
+      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      const start = text.indexOf('[');
+      const end = text.lastIndexOf(']');
+      if (start === -1 || end === -1) throw new Error('No JSON array in response');
+      return JSON.parse(text.slice(start, end + 1));
+    }
+
     async function runSearch() {
       if (!apiKey) {
         document.getElementById('apiBanner').style.display = 'block';
@@ -456,90 +515,34 @@
       const scanBtn = document.getElementById('scanBtn');
 
       spinner.classList.add('active');
-      statusText.textContent = 'Searching prediction markets and analyzing probabilities...';
       resultsDiv.innerHTML = '';
       scanBtn.disabled = true;
 
-      const catFilter = currentCat === 'all' ? '' : ` in ${currentCat}`;
-      const topicFilter = query ? ` about "${query}"` : '';
-
-      const prompt = `Search Kalshi.com for 3 live markets${catFilter}${topicFilter} at ${currentThreshold}%+. Return ONLY JSON array:
-[{"title":"...","probability":92,"resolves":"2026-12-31","rationale":"...","category":"politics"}]
-category: politics|economics|science|sports|crypto|other`;
-
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 600,
-            tools: [{ type: 'web_search_20260209', name: 'web_search' }],
-            messages: [{ role: 'user', content: prompt }]
-          })
-        });
+        statusText.textContent = 'Fetching live markets from Kalshi...';
+        const allMarkets = await fetchKalshiMarkets();
 
-        const data = await response.json();
+        statusText.textContent = `Filtering ${allMarkets.length} markets...`;
+        const filtered = filterMarkets(allMarkets, currentThreshold, currentCat, query);
 
-        if (!response.ok) {
-          const errMsg = data?.error?.message || JSON.stringify(data);
-          console.error('Anthropic API error:', JSON.stringify(data));
-          statusText.textContent = 'API error: ' + errMsg;
+        if (!filtered.length) {
+          statusText.textContent = `No markets found above ${currentThreshold}% with those filters.`;
           spinner.classList.remove('active');
           scanBtn.disabled = false;
           return;
         }
 
-        console.log('Full API response:', JSON.stringify(data));
-
-        // Collect text from all text blocks (may come after tool_use blocks)
-        const textContent = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-        console.log('Text content:', textContent);
-
-        // If no text block, Claude may have only returned tool_use — report clearly
-        if (!textContent) {
-          statusText.textContent = 'No text response returned. Check console (F12) for full response.';
-          spinner.classList.remove('active');
-          scanBtn.disabled = false;
-          return;
-        }
-
-        let bets = [];
-        try {
-          const start = textContent.indexOf('[');
-          const end = textContent.lastIndexOf(']');
-          if (start !== -1 && end !== -1) {
-            bets = JSON.parse(textContent.slice(start, end + 1));
-          }
-        } catch (parseErr) {
-          console.error('JSON parse error:', parseErr, 'Raw text:', textContent);
-          statusText.textContent = 'Could not parse response. Check console for raw output.';
-          spinner.classList.remove('active');
-          scanBtn.disabled = false;
-          return;
-        }
-
-        if (!bets.length) {
-          console.warn('Empty bets array. Raw response was:', textContent);
-          statusText.textContent = 'No results found — check console (F12) for raw response.';
-          spinner.classList.remove('active');
-          scanBtn.disabled = false;
-          return;
-        }
+        statusText.textContent = `Analyzing ${filtered.length} markets with AI...`;
+        const bets = await analyzeWithClaude(filtered, currentThreshold);
 
         spinner.classList.remove('active');
-        statusText.textContent = `Found ${bets.length} high-confidence markets at ${currentThreshold}%+ threshold.`;
+        statusText.textContent = `Found ${bets.length} high-confidence markets at ${currentThreshold}%+.`;
         renderBets(bets);
 
       } catch (err) {
         spinner.classList.remove('active');
-        console.error('Caught error:', err);
-        statusText.textContent = 'Error: ' + (err.message || JSON.stringify(err));
+        console.error('Error:', err);
+        statusText.textContent = 'Error: ' + err.message;
       }
 
       scanBtn.disabled = false;
@@ -567,7 +570,7 @@ category: politics|economics|science|sports|crypto|other`;
             </div>
             <div class="bet-rationale">${bet.rationale}</div>
             <div class="bet-footer">
-              <span class="platform-tag">${bet.platform}</span>
+              <span class="platform-tag">Kalshi</span>
             </div>
           </div>`;
       }).join('');
