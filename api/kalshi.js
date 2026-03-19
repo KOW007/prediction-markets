@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     const events = eventsData.events || []
 
     // Step 2: Fetch markets for each event in parallel (first 30 events)
-    const marketRequests = events.map(event =>
+    const marketRequests = events.slice(0, 50).map(event =>
       fetch(`https://api.elections.kalshi.com/trade-api/v2/markets?event_ticker=${event.event_ticker}&limit=10`, {
         headers: { 'Accept': 'application/json' }
       }).then(r => r.json()).then(d => d.markets || []).catch(() => [])

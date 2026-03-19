@@ -531,6 +531,7 @@
         const allMarkets = await fetchKalshiMarkets();
 
         statusText.textContent = `Filtering ${allMarkets.length} markets...`;
+        console.log('Total markets:', allMarkets.length, '| Top 5 probs:', allMarkets.map(m => getProb(m)).sort((a,b)=>b-a).slice(0,5));
         const filtered = filterMarkets(allMarkets, currentThreshold, currentCat, query);
 
         if (!filtered.length) {
