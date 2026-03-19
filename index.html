@@ -526,6 +526,7 @@
         const allMarkets = await fetchKalshiMarkets();
 
         statusText.textContent = `Filtering ${allMarkets.length} markets...`;
+        console.log('Sample market:', JSON.stringify(allMarkets[0]));
         const filtered = filterMarkets(allMarkets, currentThreshold, currentCat, query);
 
         if (!filtered.length) {
