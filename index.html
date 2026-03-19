@@ -376,7 +376,7 @@
 
       <div class="query-row">
         <input type="text" id="customQuery" placeholder="e.g. Fed rate cuts, Bitcoin ETF... or leave blank to scan all markets" />
-        <button id="scanBtn" onclick="runSearch()">Scan markets →</button>
+        <button id="scanBtn">Scan markets →</button>
       </div>
 
       <div class="status-bar">
@@ -414,6 +414,7 @@
     }
 
     document.getElementById('saveKeyBtn').addEventListener('click', saveKey);
+    document.getElementById('scanBtn').addEventListener('click', runSearch);
 
     document.getElementById('thresholdSlider').addEventListener('input', function() {
       currentThreshold = parseInt(this.value);
@@ -478,14 +479,11 @@ Return ONLY a JSON array, no markdown, no backticks:
           })
         });
 
-        if (response.status === 401) {
-          throw new Error('invalid_key');
-        }
-
         const data = await response.json();
 
         if (!response.ok) {
           const errMsg = data?.error?.message || JSON.stringify(data);
+          console.error('Anthropic API error:', JSON.stringify(data));
           statusText.textContent = 'API error: ' + errMsg;
           spinner.classList.remove('active');
           scanBtn.disabled = false;
