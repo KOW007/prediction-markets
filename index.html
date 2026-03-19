@@ -461,9 +461,13 @@
     }
 
     function filterMarkets(markets, threshold, category, query) {
+      const now = Date.now();
+      const oneMonth = 30 * 24 * 60 * 60 * 1000;
       return markets.filter(m => {
         const prob = getProb(m);
         if (prob < threshold) return false;
+        const closeTs = m.close_time ? new Date(m.close_time).getTime() : null;
+        if (!closeTs || closeTs < now || closeTs > now + oneMonth) return false;
         if (query) {
           const q = query.toLowerCase();
           if (!m.title?.toLowerCase().includes(q)) return false;
