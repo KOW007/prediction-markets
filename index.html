@@ -515,7 +515,552 @@ Return ONLY a JSON array, no markdown, no backticks:
     function renderBets(bets) {
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = bets.map(bet => {
+        const prob = Math.round(bet.probability);<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prediction Market Intelligence Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-tertiary: #eeede9;
+      --text: #1a1a18;
+      --text-secondary: #6b6b67;
+      --border: rgba(0,0,0,0.12);
+      --border-secondary: rgba(0,0,0,0.22);
+      --green-bg: #EAF3DE;
+      --green-text: #3B6D11;
+      --teal-bg: #E1F5EE;
+      --teal-text: #0F6E56;
+      --blue-bg: #E6F1FB;
+      --blue: #185FA5;
+      --blue-light: #B5D4F4;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg-secondary: #252523;
+        --bg-tertiary: #2e2e2b;
+        --text: #f0efe9;
+        --text-secondary: #9a9a94;
+        --border: rgba(255,255,255,0.1);
+        --border-secondary: rgba(255,255,255,0.2);
+        --green-bg: #173404;
+        --green-text: #C0DD97;
+        --teal-bg: #04342C;
+        --teal-text: #9FE1CB;
+        --blue-bg: #042C53;
+        --blue: #378ADD;
+        --blue-light: #0C447C;
+      }
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-tertiary);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .warning {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin-bottom: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .warning strong { color: var(--text); font-weight: 500; }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .cat-btn {
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 0.5px solid var(--border-secondary);
+      background: var(--bg);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font);
+    }
+
+    .cat-btn:hover { background: var(--bg-secondary); }
+    .cat-btn.active { background: var(--blue); color: var(--blue-light); border-color: var(--blue); }
+
+    .threshold-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .threshold-row input[type=range] {
+      width: 140px;
+      accent-color: var(--blue);
+    }
+
+    .threshold-val {
+      font-weight: 500;
+      color: var(--text);
+      min-width: 36px;
+    }
+
+    .query-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+
+    .query-row input {
+      flex: 1;
+      font-size: 14px;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-secondary);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      outline: none;
+    }
+
+    .query-row input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(55,138,221,0.15);
+    }
+
+    .query-row button {
+      font-size: 13px;
+      padding: 9px 20px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-secondary);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--font);
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .query-row button:hover { background: var(--bg-secondary); }
+    .query-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status-bar {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      min-height: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .spinner {
+      width: 12px;
+      height: 12px;
+      border: 1.5px solid var(--border-secondary);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .spinner.active { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results { display: flex; flex-direction: column; gap: 10px; }
+
+    .bet-card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      transition: border-color 0.15s;
+    }
+
+    .bet-card:hover { border-color: var(--border-secondary); }
+
+    .bet-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .bet-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    .confidence-pill {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .conf-high { background: var(--green-bg); color: var(--green-text); }
+    .conf-very-high { background: var(--teal-bg); color: var(--teal-text); }
+
+    .bet-meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .meta-item { font-size: 12px; color: var(--text-secondary); }
+    .meta-item span { color: var(--text); font-weight: 500; }
+
+    .bet-rationale {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      border-top: 0.5px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .bet-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .platform-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 0.5px solid var(--border);
+    }
+
+    .api-banner {
+      background: #FAEEDA;
+      border: 0.5px solid #EF9F27;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 1.25rem;
+      font-size: 13px;
+      color: #412402;
+      line-height: 1.6;
+    }
+
+    .api-banner code {
+      font-family: monospace;
+      background: rgba(0,0,0,0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .api-key-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .api-key-input-row input {
+      flex: 1;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid #EF9F27;
+      background: rgba(255,255,255,0.7);
+      color: #412402;
+      font-family: monospace;
+    }
+
+    .api-key-input-row button {
+      font-size: 12px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid #EF9F27;
+      background: #EF9F27;
+      color: #412402;
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 500;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    @media (max-width: 500px) {
+      .query-row { flex-direction: column; }
+      .bet-top { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Prediction market intelligence agent</h1>
+      <p>Surfaces high-confidence bets across Polymarket, Kalshi, and Manifold using AI-powered web search.</p>
+    </header>
+
+    <div class="card">
+
+      <!-- API Key banner — shown until key is saved -->
+      <div class="api-banner" id="apiBanner">
+        <strong>API key required.</strong> This app uses the Anthropic API directly. Paste your key below — it's saved only in your browser's local storage and never sent anywhere except Anthropic's API.
+        Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:#185FA5;">console.anthropic.com</a>.
+        <div class="api-key-input-row">
+          <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+          <button onclick="saveKey()">Save key</button>
+        </div>
+      </div>
+
+      <div class="warning">
+        <strong>Educational tool only.</strong> For research and informational purposes. Always verify markets directly on Polymarket, Kalshi, or Manifold before acting.
+      </div>
+
+      <div class="controls" id="catBtns">
+        <button class="cat-btn active" data-cat="all">All markets</button>
+        <button class="cat-btn" data-cat="politics">Politics</button>
+        <button class="cat-btn" data-cat="economics">Economics</button>
+        <button class="cat-btn" data-cat="science">Science & tech</button>
+        <button class="cat-btn" data-cat="sports">Sports</button>
+        <button class="cat-btn" data-cat="crypto">Crypto</button>
+      </div>
+
+      <div class="threshold-row">
+        Minimum confidence:
+        <input type="range" min="80" max="99" value="85" step="1" id="thresholdSlider" />
+        <span class="threshold-val" id="thresholdVal">85%</span>
+      </div>
+
+      <div class="query-row">
+        <input type="text" id="customQuery" placeholder="e.g. Fed rate cuts, Bitcoin ETF... or leave blank to scan all markets" />
+        <button id="scanBtn" onclick="runSearch()">Scan markets →</button>
+      </div>
+
+      <div class="status-bar">
+        <div class="spinner" id="spinner"></div>
+        <span id="statusText">Enter a topic or scan all markets to find high-confidence bets.</span>
+      </div>
+
+      <div class="results" id="results"></div>
+    </div>
+
+    <footer>For research purposes only &mdash; not financial advice.</footer>
+  </div>
+
+  <script>
+    let currentCat = 'all';
+    let currentThreshold = 85;
+    let apiKey = localStorage.getItem('anthropic_key') || '';
+
+    function init() {
+      if (apiKey) {
+        document.getElementById('apiBanner').style.display = 'none';
+      }
+    }
+
+    function saveKey() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (!val.startsWith('sk-ant-')) {
+        alert('That does not look like a valid Anthropic API key. It should start with sk-ant-');
+        return;
+      }
+      apiKey = val;
+      localStorage.setItem('anthropic_key', val);
+      document.getElementById('apiBanner').style.display = 'none';
+      document.getElementById('statusText').textContent = 'API key saved. Ready to scan markets.';
+    }
+
+    document.getElementById('thresholdSlider').addEventListener('input', function() {
+      currentThreshold = parseInt(this.value);
+      document.getElementById('thresholdVal').textContent = currentThreshold + '%';
+    });
+
+    document.getElementById('catBtns').addEventListener('click', function(e) {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+    });
+
+    async function runSearch() {
+      if (!apiKey) {
+        document.getElementById('apiBanner').style.display = 'block';
+        document.getElementById('apiKeyInput').focus();
+        return;
+      }
+
+      const query = document.getElementById('customQuery').value.trim();
+      const spinner = document.getElementById('spinner');
+      const statusText = document.getElementById('statusText');
+      const resultsDiv = document.getElementById('results');
+      const scanBtn = document.getElementById('scanBtn');
+
+      spinner.classList.add('active');
+      statusText.textContent = 'Searching prediction markets and analyzing probabilities...';
+      resultsDiv.innerHTML = '';
+      scanBtn.disabled = true;
+
+      const categoryContext = currentCat === 'all' ? 'all prediction market categories' : `the ${currentCat} category`;
+      const topicContext = query ? `Focus especially on: "${query}".` : '';
+
+      const prompt = `You are a prediction market analyst. Search the web for current, real prediction markets on Polymarket, Kalshi, and Manifold Markets that have a probability of ${currentThreshold}% or higher. Focus on ${categoryContext}. ${topicContext}
+
+Find 5-6 real, specific markets currently priced at ${currentThreshold}%+. For each provide:
+- The exact market question
+- Current probability percentage
+- Platform (Polymarket/Kalshi/Manifold)
+- Resolution date (YYYY-MM-DD)
+- Why the market is priced so high
+- Category (politics/economics/science/sports/crypto/other)
+
+Return ONLY a JSON array, no markdown, no backticks:
+[{"title":"...","probability":92,"platform":"Polymarket","resolves":"2025-12-31","rationale":"...","category":"politics"}]`;
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1500,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+
+        if (response.status === 401) {
+          throw new Error('invalid_key');
+        }
+
+        const data = await response.json();
+        const textContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+        const start = textContent.indexOf('[');
+        const end = textContent.lastIndexOf(']');
+
+        let bets = [];
+        if (start !== -1 && end !== -1) {
+          bets = JSON.parse(textContent.slice(start, end + 1));
+        }
+
+        if (!bets.length) throw new Error('no_results');
+
+        spinner.classList.remove('active');
+        statusText.textContent = `Found ${bets.length} high-confidence markets at ${currentThreshold}%+ threshold.`;
+        renderBets(bets);
+
+      } catch (err) {
+        spinner.classList.remove('active');
+        if (err.message === 'invalid_key') {
+          statusText.textContent = 'API key invalid. Please re-enter your key.';
+          localStorage.removeItem('anthropic_key');
+          apiKey = '';
+          document.getElementById('apiBanner').style.display = 'block';
+        } else {
+          statusText.textContent = 'Search failed. Check your API key or try again.';
+        }
+      }
+
+      scanBtn.disabled = false;
+    }
+
+    function renderBets(bets) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = bets.map(bet => {
         const prob = Math.round(bet.probability);
+        const pillClass = prob >= 90 ? 'conf-very-high' : 'conf-high';
+        const pillLabel = prob >= 90 ? `${prob}% — very high` : `${prob}% — high`;
+        const resolveDate = bet.resolves
+          ? new Date(bet.resolves).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'TBD';
+
+        return `
+          <div class="bet-card">
+            <div class="bet-top">
+              <div class="bet-title">${bet.title}</div>
+              <div class="confidence-pill ${pillClass}">${pillLabel}</div>
+            </div>
+            <div class="bet-meta">
+              <div class="meta-item">Resolves <span>${resolveDate}</span></div>
+              <div class="meta-item">Category <span>${bet.category || 'general'}</span></div>
+            </div>
+            <div class="bet-rationale">${bet.rationale}</div>
+            <div class="bet-footer">
+              <span class="platform-tag">${bet.platform}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
         const pillClass = prob >= 90 ? 'conf-very-high' : 'conf-high';
         const pillLabel = prob >= 90 ? `${prob}% — very high` : `${prob}% — high`;
         const resolveDate = bet.resolves
